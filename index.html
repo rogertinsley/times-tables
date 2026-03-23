@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Times Tables Challenge!</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <div id="app">
+    <!-- Welcome Screen -->
+    <div id="welcome-screen" class="screen active">
+      <h1 class="title">Times Tables<br><span class="title-highlight">Challenge!</span></h1>
+      <div class="welcome-form">
+        <label class="name-label" for="player-name">What's your name?</label>
+        <input type="text" id="player-name" class="name-input" placeholder="Enter your name" autocomplete="off" maxlength="20">
+        <button class="lets-go-btn" id="lets-go-btn">Let's Go!</button>
+      </div>
+    </div>
+
+    <!-- Menu Screen -->
+    <div id="menu-screen" class="screen">
+      <h1 class="title">Times Tables<br><span class="title-highlight">Challenge!</span></h1>
+      <p class="player-greeting" id="player-greeting"></p>
+      <div class="table-grid">
+        <button class="table-btn mix-btn" data-table="mix">Mix It Up!</button>
+        <button class="table-btn" data-table="1">1&times;</button>
+        <button class="table-btn" data-table="2">2&times;</button>
+        <button class="table-btn" data-table="3">3&times;</button>
+        <button class="table-btn" data-table="4">4&times;</button>
+        <button class="table-btn" data-table="5">5&times;</button>
+        <button class="table-btn" data-table="6">6&times;</button>
+        <button class="table-btn" data-table="7">7&times;</button>
+        <button class="table-btn" data-table="8">8&times;</button>
+        <button class="table-btn" data-table="9">9&times;</button>
+        <button class="table-btn" data-table="10">10&times;</button>
+        <button class="table-btn" data-table="11">11&times;</button>
+        <button class="table-btn" data-table="12">12&times;</button>
+      </div>
+      <button class="leaderboard-btn" id="show-leaderboard-btn">Leaderboard</button>
+      <button class="change-player-btn" id="change-player-btn">Change Player</button>
+    </div>
+
+    <!-- Countdown Screen -->
+    <div id="countdown-screen" class="screen">
+      <div id="countdown-number" class="countdown-number">3</div>
+    </div>
+
+    <!-- Game Screen -->
+    <div id="game-screen" class="screen">
+      <div class="game-header">
+        <div class="timer-container">
+          <div class="timer-bar-bg">
+            <div class="timer-bar" id="timer-bar"></div>
+          </div>
+          <span class="timer-text" id="timer-text">60</span>
+        </div>
+        <div class="score-container">
+          <span class="score-label">Score</span>
+          <span class="score-value" id="score-value">0</span>
+        </div>
+      </div>
+      <div class="question-area">
+        <div class="question" id="question">7 &times; 8 =</div>
+        <div class="input-row">
+          <input type="number" id="answer-input" class="answer-input" autocomplete="off" inputmode="numeric">
+        </div>
+        <div class="feedback" id="feedback"></div>
+      </div>
+      <div class="streak-container">
+        <span id="streak-display"></span>
+      </div>
+    </div>
+
+    <!-- Results Screen -->
+    <div id="results-screen" class="screen">
+      <h2 class="results-title" id="results-title">Time's Up!</h2>
+      <div class="results-stats">
+        <div class="stat">
+          <span class="stat-value" id="final-score">0</span>
+          <span class="stat-label">Score</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="final-correct">0</span>
+          <span class="stat-label">Correct</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="final-wrong">0</span>
+          <span class="stat-label">Wrong</span>
+        </div>
+        <div class="stat">
+          <span class="stat-value" id="final-streak">0</span>
+          <span class="stat-label">Best Streak</span>
+        </div>
+      </div>
+      <div class="new-high-score" id="new-high-score">New High Score!</div>
+      <div class="wrong-answers-review" id="wrong-answers-review"></div>
+      <button class="play-again-btn" id="play-again-btn">Play Again</button>
+      <button class="menu-btn" id="back-to-menu-btn">Back to Menu</button>
+    </div>
+
+    <!-- Leaderboard Screen -->
+    <div id="leaderboard-screen" class="screen">
+      <h2 class="leaderboard-title">Leaderboard</h2>
+      <div class="leaderboard-table" id="leaderboard-table"></div>
+      <button class="menu-btn" id="leaderboard-back-btn">Back to Menu</button>
+    </div>
+  </div>
+
+  <!-- Confetti canvas -->
+  <canvas id="confetti-canvas"></canvas>
+
+  <script src="app.js"></script>
+</body>
+</html>
