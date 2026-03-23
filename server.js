@@ -7,7 +7,9 @@ const PORT = process.env.PORT || 3000;
 const LEADERBOARD_MAX = 10;
 
 // ── Database ───────────────────────────
+const fs = require("fs");
 const dbPath = process.env.DB_PATH || path.join(__dirname, "leaderboard.db");
+fs.mkdirSync(path.dirname(dbPath), { recursive: true });
 const db = new Database(dbPath);
 db.pragma("journal_mode = WAL");
 
