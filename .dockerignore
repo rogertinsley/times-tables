@@ -1,0 +1,5 @@
+node_modules/
+leaderboard.db
+.git/
+.agents/
+.claude/

@@ -18,7 +18,6 @@ const FEEDBACK_MESSAGES_WRONG = [
   "Nope!", "Not quite!", "Try next time!", "Oops!",
 ];
 
-const LEADERBOARD_KEY = "tt-leaderboard";
 const LEADERBOARD_MAX = 10;
 const PLAYER_NAME_KEY = "tt-player-name";
 
@@ -107,41 +106,43 @@ function enterMenu() {
   showScreen("menu");
 }
 
-// ── Leaderboard Storage ────────────────
-function getLeaderboard() {
+// ── Leaderboard API ────────────────────
+async function getLeaderboard() {
   try {
-    return JSON.parse(localStorage.getItem(LEADERBOARD_KEY)) || [];
+    const res = await fetch("/api/leaderboard");
+    return await res.json();
   } catch {
     return [];
   }
 }
 
-function saveToLeaderboard(name, score, table, correct, wrong) {
-  const board = getLeaderboard();
-  board.push({
-    name,
-    score,
-    table: table === "mix" ? "Mix" : `${table}x`,
-    correct,
-    wrong,
-    date: new Date().toLocaleDateString(),
-  });
-  board.sort((a, b) => b.score - a.score);
-  if (board.length > LEADERBOARD_MAX) {
-    board.length = LEADERBOARD_MAX;
+async function saveToLeaderboard(name, score, table, correct, wrong) {
+  try {
+    const res = await fetch("/api/leaderboard", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        name,
+        score,
+        table: table === "mix" ? "Mix" : `${table}x`,
+        correct,
+        wrong,
+      }),
+    });
+    return await res.json();
+  } catch {
+    return [];
   }
-  localStorage.setItem(LEADERBOARD_KEY, JSON.stringify(board));
-  return board;
 }
 
-function isNewHighScore(score) {
-  const board = getLeaderboard();
+async function isNewHighScore(score) {
+  const board = await getLeaderboard();
   if (board.length < LEADERBOARD_MAX) return score > 0;
   return score > board[board.length - 1].score;
 }
 
-function renderLeaderboard() {
-  const board = getLeaderboard();
+async function renderLeaderboard() {
+  const board = await getLeaderboard();
   dom.leaderboard.table.textContent = "";
 
   if (board.length === 0) {
@@ -402,14 +403,14 @@ function updateTimerDisplay() {
 }
 
 // ── End Game ───────────────────────────
-function endGame() {
+async function endGame() {
   state.isProcessing = true;
 
-  const madeBoard = isNewHighScore(state.score);
+  const madeBoard = await isNewHighScore(state.score);
 
   // Save to leaderboard
   if (state.score > 0) {
-    saveToLeaderboard(
+    await saveToLeaderboard(
       state.playerName,
       state.score,
       state.selectedTable,
@@ -631,9 +632,9 @@ function init() {
   });
 
   // Leaderboard
-  dom.menu.showLeaderboardBtn.addEventListener("click", () => {
-    renderLeaderboard();
+  dom.menu.showLeaderboardBtn.addEventListener("click", async () => {
     showScreen("leaderboard");
+    await renderLeaderboard();
   });
 
   dom.leaderboard.backBtn.addEventListener("click", () => {
