@@ -35,6 +35,7 @@ const state = {
   currentQuestion: null,
   wrongAnswers: [],
   isProcessing: false,
+  lastPlayedTable: null,
 };
 
 // ── DOM References ─────────────────────
@@ -55,6 +56,9 @@ const dom = {
     greeting: document.getElementById("player-greeting"),
     showLeaderboardBtn: document.getElementById("show-leaderboard-btn"),
     changePlayerBtn: document.getElementById("change-player-btn"),
+  },
+  leaderboardTabs: {
+    container: document.getElementById("leaderboard-tabs"),
   },
   countdown: {
     number: document.getElementById("countdown-number"),
@@ -107,9 +111,9 @@ function enterMenu() {
 }
 
 // ── Leaderboard API ────────────────────
-async function getLeaderboard() {
+async function getLeaderboard(table) {
   try {
-    const res = await fetch("/api/leaderboard");
+    const res = await fetch(`/api/leaderboard?table=${encodeURIComponent(table)}`);
     return await res.json();
   } catch {
     return [];
@@ -135,15 +139,17 @@ async function saveToLeaderboard(name, score, table, correct, wrong) {
   }
 }
 
-async function isNewHighScore(score) {
-  const board = await getLeaderboard();
+async function isNewHighScore(score, table) {
+  const board = await getLeaderboard(table);
   if (board.length < LEADERBOARD_MAX) return score > 0;
   return score > board[board.length - 1].score;
 }
 
-async function renderLeaderboard() {
-  const board = await getLeaderboard();
+async function renderLeaderboard(table) {
+  const board = await getLeaderboard(table);
   dom.leaderboard.table.textContent = "";
+
+  highlightLeaderboardTab(table);
 
   if (board.length === 0) {
     const empty = document.createElement("div");
@@ -156,10 +162,10 @@ async function renderLeaderboard() {
   // Header row
   const header = document.createElement("div");
   header.className = "lb-header";
-  ["#", "Player", "Table", "Score"].forEach((text) => {
+  ["#", "Player", "Score"].forEach((text) => {
     const cell = document.createElement("span");
     cell.textContent = text;
-    if (text === "Score" || text === "Table") cell.style.textAlign = "right";
+    if (text === "Score") cell.style.textAlign = "right";
     header.appendChild(cell);
   });
   dom.leaderboard.table.appendChild(header);
@@ -180,11 +186,6 @@ async function renderLeaderboard() {
     name.className = "lb-name";
     name.textContent = entry.name;
     row.appendChild(name);
-
-    const table = document.createElement("span");
-    table.className = "lb-table";
-    table.textContent = entry.table;
-    row.appendChild(table);
 
     const score = document.createElement("span");
     score.className = "lb-score";
@@ -256,6 +257,7 @@ function startCountdown(callback) {
 // ── Game Logic ─────────────────────────
 function startGame(table) {
   state.selectedTable = table;
+  state.lastPlayedTable = table === "mix" ? "Mix" : `${table}x`;
   state.score = 0;
   state.correct = 0;
   state.wrong = 0;
@@ -406,7 +408,8 @@ function updateTimerDisplay() {
 async function endGame() {
   state.isProcessing = true;
 
-  const madeBoard = await isNewHighScore(state.score);
+  const tableKey = state.selectedTable === "mix" ? "Mix" : `${state.selectedTable}x`;
+  const madeBoard = await isNewHighScore(state.score, tableKey);
 
   // Save to leaderboard
   if (state.score > 0) {
@@ -569,8 +572,33 @@ function animateConfetti() {
   requestAnimationFrame(frame);
 }
 
+// ── Leaderboard Tabs ──────────────────
+function buildLeaderboardTabs() {
+  const container = dom.leaderboardTabs.container;
+  const tables = ["Mix", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "11x", "12x"];
+
+  tables.forEach((tbl) => {
+    const btn = document.createElement("button");
+    btn.className = "lb-tab";
+    btn.textContent = tbl === "Mix" ? "Mix" : tbl.replace("x", "");
+    btn.dataset.table = tbl;
+    btn.addEventListener("click", async () => {
+      highlightLeaderboardTab(tbl);
+      await renderLeaderboard(tbl);
+    });
+    container.appendChild(btn);
+  });
+}
+
+function highlightLeaderboardTab(activeTable) {
+  dom.leaderboardTabs.container.querySelectorAll(".lb-tab").forEach((btn) => {
+    btn.classList.toggle("lb-tab-active", btn.dataset.table === activeTable);
+  });
+}
+
 // ── Event Listeners ────────────────────
 function init() {
+  buildLeaderboardTabs();
   // Welcome screen — check for saved name
   const savedName = getSavedPlayerName();
   if (savedName) {
@@ -633,8 +661,9 @@ function init() {
 
   // Leaderboard
   dom.menu.showLeaderboardBtn.addEventListener("click", async () => {
+    const defaultTable = state.lastPlayedTable || "Mix";
     showScreen("leaderboard");
-    await renderLeaderboard();
+    await renderLeaderboard(defaultTable);
   });
 
   dom.leaderboard.backBtn.addEventListener("click", () => {

@@ -26,7 +26,7 @@ db.exec(`
 `);
 
 const stmtGetTop = db.prepare(
-  "SELECT name, score, tbl, correct, wrong, date FROM leaderboard ORDER BY score DESC LIMIT ?",
+  "SELECT name, score, tbl, correct, wrong, date FROM leaderboard WHERE tbl = ? ORDER BY score DESC LIMIT ?",
 );
 
 const stmtInsert = db.prepare(
@@ -34,13 +34,13 @@ const stmtInsert = db.prepare(
 );
 
 const stmtPrune = db.prepare(`
-  DELETE FROM leaderboard WHERE id NOT IN (
-    SELECT id FROM leaderboard ORDER BY score DESC LIMIT ?
+  DELETE FROM leaderboard WHERE tbl = ? AND id NOT IN (
+    SELECT id FROM leaderboard WHERE tbl = ? ORDER BY score DESC LIMIT ?
   )
 `);
 
-function getTop() {
-  return stmtGetTop.all(LEADERBOARD_MAX).map((row) => ({
+function getTop(tbl) {
+  return stmtGetTop.all(tbl, LEADERBOARD_MAX).map((row) => ({
     name: row.name,
     score: row.score,
     table: row.tbl,
@@ -55,8 +55,10 @@ const app = express();
 app.use(express.json());
 app.use(express.static(__dirname));
 
-app.get("/api/leaderboard", (_req, res) => {
-  res.json(getTop());
+app.get("/api/leaderboard", (req, res) => {
+  const tbl = req.query.table;
+  if (!tbl) return res.status(400).json({ error: "table param required" });
+  res.json(getTop(tbl));
 });
 
 app.post("/api/leaderboard", (req, res) => {
@@ -77,9 +79,9 @@ app.post("/api/leaderboard", (req, res) => {
   const date = new Date().toLocaleDateString();
 
   stmtInsert.run(trimmedName, score, table, correct, wrong, date);
-  stmtPrune.run(LEADERBOARD_MAX);
+  stmtPrune.run(table, table, LEADERBOARD_MAX);
 
-  res.json(getTop());
+  res.json(getTop(table));
 });
 
 app.listen(PORT, () => {

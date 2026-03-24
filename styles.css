@@ -556,6 +556,38 @@ body {
   color: var(--color-accent);
 }
 
+.leaderboard-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  justify-content: center;
+  width: 100%;
+}
+
+.lb-tab {
+  background: var(--color-surface);
+  border: 2px solid var(--color-secondary);
+  color: var(--color-text-muted);
+  font-size: 0.85rem;
+  font-weight: 700;
+  padding: 6px 12px;
+  border-radius: 20px;
+  cursor: pointer;
+  font-family: var(--font-main);
+  transition: all var(--transition-fast);
+}
+
+.lb-tab:hover {
+  border-color: var(--color-accent);
+  color: var(--color-text);
+}
+
+.lb-tab-active {
+  background: var(--color-accent);
+  border-color: var(--color-accent);
+  color: var(--color-bg);
+}
+
 .leaderboard-table {
   width: 100%;
   display: flex;
@@ -566,7 +598,7 @@ body {
 .lb-header,
 .lb-row {
   display: grid;
-  grid-template-columns: 36px 1fr 60px 60px;
+  grid-template-columns: 36px 1fr 60px;
   gap: 8px;
   align-items: center;
   padding: 10px 12px;
@@ -620,12 +652,6 @@ body {
   text-align: right;
 }
 
-.lb-table {
-  font-weight: 600;
-  color: var(--color-text-muted);
-  text-align: right;
-}
-
 .lb-empty {
   text-align: center;
   color: var(--color-text-muted);
@@ -656,4 +682,5 @@ body {
   .answer-input { font-size: 1.8rem; width: 130px; }
   .table-grid { gap: 6px; }
   .table-btn { padding: 10px 0; font-size: 1rem; }
+  .lb-tab { padding: 4px 8px; font-size: 0.75rem; }
 }
