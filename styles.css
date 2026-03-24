@@ -357,6 +357,32 @@ body {
   display: flex;
   gap: 12px;
   align-items: center;
+  justify-content: center;
+}
+
+.submit-answer-btn {
+  background: var(--color-accent);
+  color: var(--color-bg);
+  font-size: 1.6rem;
+  font-weight: 800;
+  font-family: var(--font-main);
+  padding: 12px 24px;
+  border: none;
+  border-radius: var(--radius);
+  cursor: pointer;
+  letter-spacing: 1px;
+  animation: goPulse 1.5s ease-in-out infinite;
+  transition: transform var(--transition-fast), background var(--transition-fast);
+}
+
+.submit-answer-btn:active {
+  transform: scale(0.92);
+  background: #d4b115;
+}
+
+@keyframes goPulse {
+  0%, 100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(245, 197, 24, 0.5); }
+  50% { transform: scale(1.06); box-shadow: 0 0 16px 4px rgba(245, 197, 24, 0.3); }
 }
 
 .answer-input {
@@ -680,6 +706,7 @@ body {
   .title-highlight { font-size: 2.2rem; }
   .question { font-size: 2.4rem; }
   .answer-input { font-size: 1.8rem; width: 130px; }
+  .submit-answer-btn { font-size: 1.3rem; padding: 10px 18px; }
   .table-grid { gap: 6px; }
   .table-btn { padding: 10px 0; font-size: 1rem; }
   .lb-tab { padding: 4px 8px; font-size: 0.75rem; }

@@ -69,6 +69,7 @@ const dom = {
     scoreValue: document.getElementById("score-value"),
     question: document.getElementById("question"),
     answerInput: document.getElementById("answer-input"),
+    submitBtn: document.getElementById("submit-answer-btn"),
     feedback: document.getElementById("feedback"),
     streakDisplay: document.getElementById("streak-display"),
   },
@@ -648,6 +649,12 @@ function init() {
     if (e.key === "Enter") {
       submitAnswer();
     }
+  });
+
+  // Submit answer on GO button tap/click
+  dom.game.submitBtn.addEventListener("click", () => {
+    submitAnswer();
+    dom.game.answerInput.focus();
   });
 
   // Results screen buttons
