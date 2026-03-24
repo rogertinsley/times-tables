@@ -647,6 +647,7 @@ function init() {
   // Submit answer on Enter
   dom.game.answerInput.addEventListener("keydown", (e) => {
     if (e.key === "Enter") {
+      e.preventDefault();
       submitAnswer();
     }
   });
