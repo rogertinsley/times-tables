@@ -3,14 +3,14 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Times Tables Challenge!</title>
+  <title>Maths Challenge!</title>
   <link rel="stylesheet" href="styles.css">
 </head>
 <body>
   <div id="app">
     <!-- Welcome Screen -->
     <div id="welcome-screen" class="screen active">
-      <h1 class="title">Times Tables<br><span class="title-highlight">Challenge!</span></h1>
+      <h1 class="title">Maths<br><span class="title-highlight">Challenge!</span></h1>
       <div class="welcome-form">
         <label class="name-label" for="player-name">What's your name?</label>
         <input type="text" id="player-name" class="name-input" placeholder="Enter your name" autocomplete="off" maxlength="20">
@@ -18,9 +18,26 @@
       </div>
     </div>
 
+    <!-- Challenge Select Screen -->
+    <div id="challenge-screen" class="screen">
+      <h1 class="title">Pick Your<br><span class="title-highlight">Challenge!</span></h1>
+      <p class="player-greeting" id="challenge-greeting"></p>
+      <div class="challenge-grid">
+        <button class="challenge-btn challenge-multiply" id="choose-multiply">
+          <span class="challenge-icon">&times;</span>
+          <span class="challenge-label">Times Tables</span>
+        </button>
+        <button class="challenge-btn challenge-divide" id="choose-divide">
+          <span class="challenge-icon">&divide;</span>
+          <span class="challenge-label">Division</span>
+        </button>
+      </div>
+      <button class="change-player-btn" id="challenge-change-player-btn">Change Player</button>
+    </div>
+
     <!-- Menu Screen -->
     <div id="menu-screen" class="screen">
-      <h1 class="title">Times Tables<br><span class="title-highlight">Challenge!</span></h1>
+      <h1 class="title" id="menu-title">Times Tables<br><span class="title-highlight">Challenge!</span></h1>
       <p class="player-greeting" id="player-greeting"></p>
       <div class="table-grid">
         <button class="table-btn mix-btn" data-table="mix">Mix It Up!</button>
@@ -38,7 +55,7 @@
         <button class="table-btn" data-table="12">12&times;</button>
       </div>
       <button class="leaderboard-btn" id="show-leaderboard-btn">Leaderboard</button>
-      <button class="change-player-btn" id="change-player-btn">Change Player</button>
+      <button class="change-player-btn" id="back-to-challenge-btn">Back</button>
     </div>
 
     <!-- Countdown Screen -->

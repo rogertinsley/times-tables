@@ -24,6 +24,7 @@ const PLAYER_NAME_KEY = "tt-player-name";
 // ── State ──────────────────────────────
 const state = {
   playerName: "",
+  gameMode: "multiply", // 'multiply' or 'divide'
   selectedTable: null, // number or 'mix'
   score: 0,
   correct: 0,
@@ -42,6 +43,7 @@ const state = {
 const dom = {
   screens: {
     welcome: document.getElementById("welcome-screen"),
+    challenge: document.getElementById("challenge-screen"),
     menu: document.getElementById("menu-screen"),
     countdown: document.getElementById("countdown-screen"),
     game: document.getElementById("game-screen"),
@@ -52,10 +54,17 @@ const dom = {
     nameInput: document.getElementById("player-name"),
     letsGoBtn: document.getElementById("lets-go-btn"),
   },
+  challenge: {
+    greeting: document.getElementById("challenge-greeting"),
+    multiplyBtn: document.getElementById("choose-multiply"),
+    divideBtn: document.getElementById("choose-divide"),
+    changePlayerBtn: document.getElementById("challenge-change-player-btn"),
+  },
   menu: {
+    title: document.getElementById("menu-title"),
     greeting: document.getElementById("player-greeting"),
     showLeaderboardBtn: document.getElementById("show-leaderboard-btn"),
-    changePlayerBtn: document.getElementById("change-player-btn"),
+    backToChallengeBtn: document.getElementById("back-to-challenge-btn"),
   },
   leaderboardTabs: {
     container: document.getElementById("leaderboard-tabs"),
@@ -106,15 +115,42 @@ function savePlayerName(name) {
   localStorage.setItem(PLAYER_NAME_KEY, name);
 }
 
+function enterChallengeSelect() {
+  dom.challenge.greeting.textContent = `Ready, ${state.playerName}?`;
+  showScreen("challenge");
+}
+
 function enterMenu() {
+  // Update title for mode
+  dom.menu.title.textContent = "";
+  const titleText = state.gameMode === "divide" ? "Division" : "Times Tables";
+  dom.menu.title.appendChild(document.createTextNode(titleText));
+  dom.menu.title.appendChild(document.createElement("br"));
+  const highlight = document.createElement("span");
+  highlight.className = "title-highlight";
+  highlight.textContent = "Challenge!";
+  dom.menu.title.appendChild(highlight);
+
+  updateTableButtonLabels(state.gameMode);
   dom.menu.greeting.textContent = `Ready, ${state.playerName}?`;
   showScreen("menu");
+}
+
+function updateTableButtonLabels(mode) {
+  document.querySelectorAll(".table-btn:not(.mix-btn)").forEach((btn) => {
+    const table = btn.dataset.table;
+    if (mode === "divide") {
+      btn.textContent = "\u00F7" + table;
+    } else {
+      btn.textContent = table + "\u00D7";
+    }
+  });
 }
 
 // ── Leaderboard API ────────────────────
 async function getLeaderboard(table) {
   try {
-    const res = await fetch(`/api/leaderboard?table=${encodeURIComponent(table)}`);
+    const res = await fetch(`/api/leaderboard?table=${encodeURIComponent(table)}&mode=${encodeURIComponent(state.gameMode)}`);
     return await res.json();
   } catch {
     return [];
@@ -123,15 +159,19 @@ async function getLeaderboard(table) {
 
 async function saveToLeaderboard(name, score, table, correct, wrong) {
   try {
+    const tableLabel = state.gameMode === "divide"
+      ? (table === "mix" ? "Mix" : `\u00F7${table}`)
+      : (table === "mix" ? "Mix" : `${table}x`);
     const res = await fetch("/api/leaderboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         score,
-        table: table === "mix" ? "Mix" : `${table}x`,
+        table: tableLabel,
         correct,
         wrong,
+        mode: state.gameMode,
       }),
     });
     return await res.json();
@@ -199,6 +239,13 @@ async function renderLeaderboard(table) {
 
 // ── Question Generation ────────────────
 function generateQuestion() {
+  if (state.gameMode === "divide") {
+    return generateDivisionQuestion();
+  }
+  return generateMultiplyQuestion();
+}
+
+function generateMultiplyQuestion() {
   let a, b;
 
   if (state.selectedTable === "mix") {
@@ -214,7 +261,22 @@ function generateQuestion() {
     [a, b] = [b, a];
   }
 
-  return { a, b, answer: a * b };
+  return { a, b, answer: a * b, op: "\u00D7" };
+}
+
+function generateDivisionQuestion() {
+  let divisor, factor;
+
+  if (state.selectedTable === "mix") {
+    divisor = randomInt(TABLES_MIN, TABLES_MAX);
+  } else {
+    divisor = state.selectedTable;
+  }
+
+  factor = randomInt(FACTOR_MIN, FACTOR_MAX);
+  const dividend = divisor * factor;
+
+  return { a: dividend, b: divisor, answer: factor, op: "\u00F7" };
 }
 
 function randomInt(min, max) {
@@ -258,7 +320,8 @@ function startCountdown(callback) {
 // ── Game Logic ─────────────────────────
 function startGame(table) {
   state.selectedTable = table;
-  state.lastPlayedTable = table === "mix" ? "Mix" : `${table}x`;
+  state.lastPlayedTable = table === "mix" ? "Mix"
+    : state.gameMode === "divide" ? `\u00F7${table}` : `${table}x`;
   state.score = 0;
   state.correct = 0;
   state.wrong = 0;
@@ -289,15 +352,15 @@ function resetGameUI() {
   dom.game.answerInput.className = "answer-input";
 }
 
-function displayQuestion(a, b) {
+function displayQuestion(a, b, op) {
   dom.game.question.textContent = "";
-  dom.game.question.append(`${a} \u00D7 ${b} = `);
+  dom.game.question.append(`${a} ${op} ${b} = `);
 }
 
 function nextQuestion() {
   state.currentQuestion = generateQuestion();
-  const { a, b } = state.currentQuestion;
-  displayQuestion(a, b);
+  const { a, b, op } = state.currentQuestion;
+  displayQuestion(a, b, op);
   dom.game.answerInput.value = "";
   dom.game.answerInput.className = "answer-input";
   dom.game.answerInput.focus();
@@ -365,7 +428,7 @@ function handleWrong(userAnswer) {
   state.streak = 0;
 
   const { a, b, answer } = state.currentQuestion;
-  state.wrongAnswers.push({ a, b, answer, userAnswer });
+  state.wrongAnswers.push({ a, b, answer, userAnswer, op: state.currentQuestion.op });
 
   dom.game.answerInput.className = "answer-input wrong";
 
@@ -409,7 +472,8 @@ function updateTimerDisplay() {
 async function endGame() {
   state.isProcessing = true;
 
-  const tableKey = state.selectedTable === "mix" ? "Mix" : `${state.selectedTable}x`;
+  const tableKey = state.selectedTable === "mix" ? "Mix"
+    : state.gameMode === "divide" ? `\u00F7${state.selectedTable}` : `${state.selectedTable}x`;
   const madeBoard = await isNewHighScore(state.score, tableKey);
 
   // Save to leaderboard
@@ -464,11 +528,11 @@ function buildWrongAnswersReview() {
   heading.textContent = "Review these:";
   dom.results.wrongReview.appendChild(heading);
 
-  state.wrongAnswers.forEach(({ a, b, answer, userAnswer }) => {
+  state.wrongAnswers.forEach(({ a, b, answer, userAnswer, op }) => {
     const item = document.createElement("div");
     item.className = "wrong-answer-item";
 
-    const questionText = document.createTextNode(`${a} \u00D7 ${b} = `);
+    const questionText = document.createTextNode(`${a} ${op} ${b} = `);
     item.appendChild(questionText);
 
     const correctSpan = document.createElement("span");
@@ -576,12 +640,16 @@ function animateConfetti() {
 // ── Leaderboard Tabs ──────────────────
 function buildLeaderboardTabs() {
   const container = dom.leaderboardTabs.container;
-  const tables = ["Mix", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "11x", "12x"];
+  container.textContent = "";
+
+  const tables = state.gameMode === "divide"
+    ? ["Mix", "\u00F71", "\u00F72", "\u00F73", "\u00F74", "\u00F75", "\u00F76", "\u00F77", "\u00F78", "\u00F79", "\u00F710", "\u00F711", "\u00F712"]
+    : ["Mix", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "11x", "12x"];
 
   tables.forEach((tbl) => {
     const btn = document.createElement("button");
     btn.className = "lb-tab";
-    btn.textContent = tbl === "Mix" ? "Mix" : tbl.replace("x", "");
+    btn.textContent = tbl === "Mix" ? "Mix" : tbl.replace("x", "").replace("\u00F7", "");
     btn.dataset.table = tbl;
     btn.addEventListener("click", async () => {
       highlightLeaderboardTab(tbl);
@@ -599,13 +667,12 @@ function highlightLeaderboardTab(activeTable) {
 
 // ── Event Listeners ────────────────────
 function init() {
-  buildLeaderboardTabs();
   // Welcome screen — check for saved name
   const savedName = getSavedPlayerName();
   if (savedName) {
     state.playerName = savedName;
     dom.welcome.nameInput.value = savedName;
-    enterMenu();
+    enterChallengeSelect();
   }
 
   // Welcome screen — name input
@@ -619,7 +686,7 @@ function init() {
     if (!name) return;
     state.playerName = name;
     savePlayerName(name);
-    enterMenu();
+    enterChallengeSelect();
   });
 
   dom.welcome.nameInput.addEventListener("keydown", (e) => {
@@ -628,12 +695,27 @@ function init() {
     }
   });
 
-  // Change player
-  dom.menu.changePlayerBtn.addEventListener("click", () => {
+  // Challenge select screen
+  dom.challenge.multiplyBtn.addEventListener("click", () => {
+    state.gameMode = "multiply";
+    enterMenu();
+  });
+
+  dom.challenge.divideBtn.addEventListener("click", () => {
+    state.gameMode = "divide";
+    enterMenu();
+  });
+
+  dom.challenge.changePlayerBtn.addEventListener("click", () => {
     dom.welcome.nameInput.value = "";
     dom.welcome.letsGoBtn.disabled = true;
     showScreen("welcome");
     dom.welcome.nameInput.focus();
+  });
+
+  // Back to challenge select
+  dom.menu.backToChallengeBtn.addEventListener("click", () => {
+    enterChallengeSelect();
   });
 
   // Table selection buttons
@@ -669,6 +751,7 @@ function init() {
 
   // Leaderboard
   dom.menu.showLeaderboardBtn.addEventListener("click", async () => {
+    buildLeaderboardTabs();
     const defaultTable = state.lastPlayedTable || "Mix";
     showScreen("leaderboard");
     await renderLeaderboard(defaultTable);
