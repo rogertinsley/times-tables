@@ -21,10 +21,15 @@ const FEEDBACK_MESSAGES_WRONG = [
 const LEADERBOARD_MAX = 10;
 const PLAYER_NAME_KEY = "tt-player-name";
 
+const FRACTION_DENOMINATORS = [2, 3, 4, 5, 8, 10];
+const FRACTION_LABELS = { 2: "Halves", 3: "Thirds", 4: "Quarters", 5: "Fifths", 8: "Eighths", 10: "Tenths" };
+const FRACTION_SYMBOLS = { "1/2": "½", "1/3": "⅓", "1/4": "¼", "1/5": "⅕", "1/8": "⅛", "1/10": "⅒" };
+const OP_FRAC = "frac";
+
 // ── State ──────────────────────────────
 const state = {
   playerName: "",
-  gameMode: "multiply", // 'multiply' or 'divide'
+  gameMode: "multiply", // 'multiply', 'divide', or 'fractions'
   selectedTable: null, // number or 'mix'
   score: 0,
   correct: 0,
@@ -58,11 +63,13 @@ const dom = {
     greeting: document.getElementById("challenge-greeting"),
     multiplyBtn: document.getElementById("choose-multiply"),
     divideBtn: document.getElementById("choose-divide"),
+    fractionsBtn: document.getElementById("choose-fractions"),
     changePlayerBtn: document.getElementById("challenge-change-player-btn"),
   },
   menu: {
     title: document.getElementById("menu-title"),
     greeting: document.getElementById("player-greeting"),
+    tableGrid: document.querySelector(".table-grid"),
     showLeaderboardBtn: document.getElementById("show-leaderboard-btn"),
     backToChallengeBtn: document.getElementById("back-to-challenge-btn"),
   },
@@ -121,9 +128,10 @@ function enterChallengeSelect() {
 }
 
 function enterMenu() {
-  // Update title for mode
   dom.menu.title.textContent = "";
-  const titleText = state.gameMode === "divide" ? "Division" : "Times Tables";
+  const titleText = state.gameMode === "divide" ? "Division"
+    : state.gameMode === "fractions" ? "Fractions"
+    : "Times Tables";
   dom.menu.title.appendChild(document.createTextNode(titleText));
   dom.menu.title.appendChild(document.createElement("br"));
   const highlight = document.createElement("span");
@@ -131,6 +139,7 @@ function enterMenu() {
   highlight.textContent = "Challenge!";
   dom.menu.title.appendChild(highlight);
 
+  dom.menu.tableGrid.classList.toggle("fractions-grid", state.gameMode === "fractions");
   updateTableButtonLabels(state.gameMode);
   dom.menu.greeting.textContent = `Ready, ${state.playerName}?`;
   showScreen("menu");
@@ -138,11 +147,21 @@ function enterMenu() {
 
 function updateTableButtonLabels(mode) {
   document.querySelectorAll(".table-btn:not(.mix-btn)").forEach((btn) => {
-    const table = btn.dataset.table;
-    if (mode === "divide") {
-      btn.textContent = "\u00F7" + table;
+    const table = parseInt(btn.dataset.table, 10);
+    if (mode === "fractions") {
+      if (FRACTION_LABELS[table]) {
+        btn.textContent = FRACTION_LABELS[table];
+        btn.style.display = "";
+      } else {
+        btn.style.display = "none";
+      }
     } else {
-      btn.textContent = table + "\u00D7";
+      btn.style.display = "";
+      if (mode === "divide") {
+        btn.textContent = "\u00F7" + table;
+      } else {
+        btn.textContent = table + "\u00D7";
+      }
     }
   });
 }
@@ -157,18 +176,22 @@ async function getLeaderboard(table) {
   }
 }
 
+function tableLabel(mode, table) {
+  if (table === "mix") return "Mix";
+  if (mode === "divide") return `\u00F7${table}`;
+  if (mode === "fractions") return `1/${table}`;
+  return `${table}x`;
+}
+
 async function saveToLeaderboard(name, score, table, correct, wrong) {
   try {
-    const tableLabel = state.gameMode === "divide"
-      ? (table === "mix" ? "Mix" : `\u00F7${table}`)
-      : (table === "mix" ? "Mix" : `${table}x`);
     const res = await fetch("/api/leaderboard", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({
         name,
         score,
-        table: tableLabel,
+        table: tableLabel(state.gameMode, table),
         correct,
         wrong,
         mode: state.gameMode,
@@ -239,10 +262,36 @@ async function renderLeaderboard(table) {
 
 // ── Question Generation ────────────────
 function generateQuestion() {
-  if (state.gameMode === "divide") {
-    return generateDivisionQuestion();
-  }
+  if (state.gameMode === "divide") return generateDivisionQuestion();
+  if (state.gameMode === "fractions") return generateFractionsQuestion();
   return generateMultiplyQuestion();
+}
+
+function generateFractionsQuestion() {
+  const denominator = state.selectedTable === "mix"
+    ? randomItem(FRACTION_DENOMINATORS)
+    : state.selectedTable;
+
+  const numerator = randomInt(1, denominator - 1);
+  const multiplier = randomInt(1, 10);
+  const of = denominator * multiplier;
+  const answer = numerator * multiplier;
+
+  return { numerator, denominator, b: of, answer, op: OP_FRAC };
+}
+
+function buildFractionEl(numerator, denominator) {
+  const frac = document.createElement("span");
+  frac.className = "fraction-display";
+  const num = document.createElement("span");
+  num.className = "fraction-num";
+  num.textContent = numerator;
+  frac.appendChild(num);
+  const den = document.createElement("span");
+  den.className = "fraction-den";
+  den.textContent = denominator;
+  frac.appendChild(den);
+  return frac;
 }
 
 function generateMultiplyQuestion() {
@@ -320,8 +369,7 @@ function startCountdown(callback) {
 // ── Game Logic ─────────────────────────
 function startGame(table) {
   state.selectedTable = table;
-  state.lastPlayedTable = table === "mix" ? "Mix"
-    : state.gameMode === "divide" ? `\u00F7${table}` : `${table}x`;
+  state.lastPlayedTable = tableLabel(state.gameMode, table);
   state.score = 0;
   state.correct = 0;
   state.wrong = 0;
@@ -352,15 +400,19 @@ function resetGameUI() {
   dom.game.answerInput.className = "answer-input";
 }
 
-function displayQuestion(a, b, op) {
-  dom.game.question.textContent = "";
-  dom.game.question.append(`${a} ${op} ${b} = `);
+function appendQuestionTo(el, q) {
+  if (q.op === OP_FRAC) {
+    el.appendChild(buildFractionEl(q.numerator, q.denominator));
+    el.appendChild(document.createTextNode(` of ${q.b} = `));
+  } else {
+    el.append(`${q.a} ${q.op} ${q.b} = `);
+  }
 }
 
 function nextQuestion() {
   state.currentQuestion = generateQuestion();
-  const { a, b, op } = state.currentQuestion;
-  displayQuestion(a, b, op);
+  dom.game.question.textContent = "";
+  appendQuestionTo(dom.game.question, state.currentQuestion);
   dom.game.answerInput.value = "";
   dom.game.answerInput.className = "answer-input";
   dom.game.answerInput.focus();
@@ -427,8 +479,8 @@ function handleWrong(userAnswer) {
   state.wrong++;
   state.streak = 0;
 
-  const { a, b, answer } = state.currentQuestion;
-  state.wrongAnswers.push({ a, b, answer, userAnswer, op: state.currentQuestion.op });
+  const { a, b, answer, op, numerator, denominator } = state.currentQuestion;
+  state.wrongAnswers.push({ a, b, answer, userAnswer, op, numerator, denominator });
 
   dom.game.answerInput.className = "answer-input wrong";
 
@@ -472,8 +524,7 @@ function updateTimerDisplay() {
 async function endGame() {
   state.isProcessing = true;
 
-  const tableKey = state.selectedTable === "mix" ? "Mix"
-    : state.gameMode === "divide" ? `\u00F7${state.selectedTable}` : `${state.selectedTable}x`;
+  const tableKey = tableLabel(state.gameMode, state.selectedTable);
   const madeBoard = await isNewHighScore(state.score, tableKey);
 
   // Save to leaderboard
@@ -528,21 +579,19 @@ function buildWrongAnswersReview() {
   heading.textContent = "Review these:";
   dom.results.wrongReview.appendChild(heading);
 
-  state.wrongAnswers.forEach(({ a, b, answer, userAnswer, op }) => {
+  state.wrongAnswers.forEach((wa) => {
     const item = document.createElement("div");
     item.className = "wrong-answer-item";
-
-    const questionText = document.createTextNode(`${a} ${op} ${b} = `);
-    item.appendChild(questionText);
+    appendQuestionTo(item, wa);
 
     const correctSpan = document.createElement("span");
     correctSpan.className = "correct-answer";
-    correctSpan.textContent = answer;
+    correctSpan.textContent = wa.answer;
     item.appendChild(correctSpan);
 
     const yourAnswer = document.createElement("span");
     yourAnswer.style.color = "var(--color-text-muted)";
-    yourAnswer.textContent = ` (you said ${userAnswer})`;
+    yourAnswer.textContent = ` (you said ${wa.userAnswer})`;
     item.appendChild(yourAnswer);
 
     dom.results.wrongReview.appendChild(item);
@@ -642,14 +691,22 @@ function buildLeaderboardTabs() {
   const container = dom.leaderboardTabs.container;
   container.textContent = "";
 
-  const tables = state.gameMode === "divide"
+  const tables = state.gameMode === "fractions"
+    ? ["Mix", ...FRACTION_DENOMINATORS.map(d => `1/${d}`)]
+    : state.gameMode === "divide"
     ? ["Mix", "\u00F71", "\u00F72", "\u00F73", "\u00F74", "\u00F75", "\u00F76", "\u00F77", "\u00F78", "\u00F79", "\u00F710", "\u00F711", "\u00F712"]
     : ["Mix", "1x", "2x", "3x", "4x", "5x", "6x", "7x", "8x", "9x", "10x", "11x", "12x"];
 
   tables.forEach((tbl) => {
     const btn = document.createElement("button");
     btn.className = "lb-tab";
-    btn.textContent = tbl === "Mix" ? "Mix" : tbl.replace("x", "").replace("\u00F7", "");
+    if (tbl === "Mix") {
+      btn.textContent = "Mix";
+    } else if (state.gameMode === "fractions") {
+      btn.textContent = FRACTION_SYMBOLS[tbl];
+    } else {
+      btn.textContent = tbl.replace("x", "").replace("\u00F7", "");
+    }
     btn.dataset.table = tbl;
     btn.addEventListener("click", async () => {
       highlightLeaderboardTab(tbl);
@@ -703,6 +760,11 @@ function init() {
 
   dom.challenge.divideBtn.addEventListener("click", () => {
     state.gameMode = "divide";
+    enterMenu();
+  });
+
+  dom.challenge.fractionsBtn.addEventListener("click", () => {
+    state.gameMode = "fractions";
     enterMenu();
   });
 

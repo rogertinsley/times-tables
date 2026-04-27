@@ -73,7 +73,7 @@ app.get("/api/leaderboard", (req, res) => {
 
 app.post("/api/leaderboard", (req, res) => {
   const { name, score, table, correct, wrong, mode } = req.body;
-  const validMode = mode === "divide" ? "divide" : "multiply";
+  const validMode = mode === "divide" ? "divide" : mode === "fractions" ? "fractions" : "multiply";
 
   // Validate
   if (
