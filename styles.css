@@ -110,6 +110,15 @@ body {
   background: rgba(33, 150, 243, 0.1);
 }
 
+.challenge-fractions {
+  grid-column: 1 / -1;
+}
+
+.challenge-fractions:hover {
+  border-color: var(--color-success);
+  background: rgba(0, 200, 83, 0.1);
+}
+
 .challenge-icon {
   font-size: 3.5rem;
   font-weight: 800;
@@ -122,6 +131,10 @@ body {
 
 .challenge-divide .challenge-icon {
   color: #2196f3;
+}
+
+.challenge-fractions .challenge-icon {
+  color: var(--color-success);
 }
 
 .challenge-label {
@@ -150,6 +163,10 @@ body {
   grid-template-columns: repeat(4, 1fr);
   gap: 10px;
   width: 100%;
+}
+
+.table-grid.fractions-grid {
+  grid-template-columns: repeat(2, 1fr);
 }
 
 .table-btn {
@@ -749,6 +766,29 @@ body {
 }
 
 /* ========================================
+   Fraction Display (game & review)
+   ======================================== */
+.fraction-display {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  vertical-align: middle;
+  line-height: 1.1;
+  font-size: inherit;
+}
+
+.fraction-num {
+  border-bottom: 4px solid currentColor;
+  padding: 0 6px 4px;
+  line-height: 1.2;
+}
+
+.fraction-den {
+  padding: 4px 6px 0;
+  line-height: 1.2;
+}
+
+/* ========================================
    Confetti Canvas
    ======================================== */
 #confetti-canvas {
@@ -776,4 +816,5 @@ body {
   .challenge-btn { padding: 20px 12px; }
   .challenge-icon { font-size: 2.5rem; }
   .challenge-label { font-size: 0.95rem; }
+  .fraction-num { border-bottom-width: 3px; }
 }
